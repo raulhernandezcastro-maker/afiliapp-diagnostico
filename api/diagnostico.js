@@ -446,4 +446,5 @@ function generarEmail({ nombre, organizacion, url, checks, puntaje, total, nivel
 
 </body>
 </html>`;
+
 }
