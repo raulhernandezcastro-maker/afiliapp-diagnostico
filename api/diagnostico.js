@@ -4,7 +4,9 @@
 
 export default async function handler(req, res) {
   // CORS
-  res.setHeader('Access-Control-Allow-Origin', 'https://www.afiliapp.cl');
+  const origin = req.headers.origin || '';
+  const allowed = ['https://www.afiliapp.cl', 'https://afiliapp.cl'];
+  res.setHeader('Access-Control-Allow-Origin', allowed.includes(origin) ? origin : '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
