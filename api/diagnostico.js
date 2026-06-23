@@ -1,4 +1,4 @@
-// v2
+// v3
 // api/diagnostico.js
 // Vercel Serverless Function — Diagnóstico Ley 21.719
 // Requiere: RESEND_API_KEY en variables de entorno de Vercel
@@ -64,6 +64,11 @@ export default async function handler(req, res) {
   // ── 3. EMAIL ─────────────────────────────────────────────────────────────────
   const htmlEmail = generarEmail({ nombre, organizacion, url: urlLimpia, checks, puntaje, total, nivel, fetchError });
 
+  // DIAGNÓSTICO: verificar que el KEY existe y sus primeros caracteres
+  const keyPreview = process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0, 12) : 'UNDEFINED';
+  console.log('KEY PREVIEW:', keyPreview);
+  console.log('KEY LENGTH:', process.env.RESEND_API_KEY?.length ?? 0);
+
   try {
     const resendResp = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -83,7 +88,7 @@ export default async function handler(req, res) {
     if (!resendResp.ok) {
       const err = await resendResp.text();
       console.error('Resend error:', err);
-      return res.status(500).json({ error: 'Error al enviar el email', detalle: err}); // <- agrega detalle: err
+      return res.status(500).json({ error: 'Error al enviar el email', detalle: err });
     }
 
     return res.status(200).json({ ok: true, puntaje, total, nivel });
@@ -98,7 +103,7 @@ export default async function handler(req, res) {
 
 function normalizar(texto) {
   return texto.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // quitar tildes
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 function contiene(texto, ...palabras) {
@@ -107,8 +112,6 @@ function contiene(texto, ...palabras) {
 }
 
 function extraerEnlacePrivacidad(html, base) {
-  const n = normalizar(html);
-  // Buscar href que contenga "privacidad", "privacy", "datos"
   const regex = /href=["']([^"']*(?:privac|datos|privacy)[^"']*)["']/gi;
   const match = regex.exec(html);
   if (!match) return null;
@@ -126,7 +129,6 @@ function tieneFormulario(html) {
 }
 
 function formularioConCheckbox(html) {
-  // Buscar formularios que contengan checkbox
   const forms = [...html.matchAll(/<form[\s\S]*?<\/form>/gi)].map(m => m[0]);
   return forms.some(f => /type=["']checkbox["']/i.test(f));
 }
