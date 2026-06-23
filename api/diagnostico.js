@@ -82,7 +82,7 @@ export default async function handler(req, res) {
     if (!resendResp.ok) {
       const err = await resendResp.text();
       console.error('Resend error:', err);
-      return res.status(500).json({ error: 'Error al enviar el email' });
+      return res.status(500).json({ error: 'Error al enviar el email', detalle: err}); // <- agrega detalle: err
     }
 
     return res.status(200).json({ ok: true, puntaje, total, nivel });
