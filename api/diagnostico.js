@@ -1,3 +1,4 @@
+// v2
 // api/diagnostico.js
 // Vercel Serverless Function — Diagnóstico Ley 21.719
 // Requiere: RESEND_API_KEY en variables de entorno de Vercel
