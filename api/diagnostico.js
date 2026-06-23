@@ -66,8 +66,8 @@ export default async function handler(req, res) {
 
   // DIAGNÓSTICO: verificar que el KEY existe y sus primeros caracteres
   const keyPreview = process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0, 12) : 'UNDEFINED';
-  console.log('KEY PREVIEW:', keyPreview);
-  console.log('KEY LENGTH:', process.env.RESEND_API_KEY?.length ?? 0);
+  console.error('KEY PREVIEW:', keyPreview);
+  console.error('KEY LENGTH:', process.env.RESEND_API_KEY?.length ?? 0);
 
   try {
     const resendResp = await fetch('https://api.resend.com/emails', {
