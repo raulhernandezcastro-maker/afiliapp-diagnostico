@@ -285,7 +285,7 @@ function generarEmail({ nombre, organizacion, url, checks, puntaje, total, nivel
               cláusula de incorporación, consentimiento digital y protocolo de brechas.
             </p>
             <table cellpadding="0" cellspacing="0"><tr><td>
-              <a href="https://www.afiliapp.cl/#contacto"
+              <a href="https://www.afiliapp.cl/?tipo=implementacion#contacto"
                  style="display:inline-block;background:${VERDE2};color:#fff;text-decoration:none;
                         padding:12px 28px;border-radius:6px;font-size:14px;font-weight:700;">
                 Solicitar implementación →
