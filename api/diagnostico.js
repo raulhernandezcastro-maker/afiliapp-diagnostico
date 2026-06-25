@@ -1,11 +1,9 @@
-// v4 - nodemailer Gmail
+// v5 - nodemailer Gmail + comportamiento mejorado sin acceso
 // api/diagnostico.js
-// Vercel Serverless Function — Diagnóstico Ley 21.719
 
 import nodemailer from 'nodemailer';
 
 export default async function handler(req, res) {
-  // CORS
   const origin = req.headers.origin || '';
   const allowed = ['https://www.afiliapp.cl', 'https://afiliapp.cl'];
   res.setHeader('Access-Control-Allow-Origin', allowed.includes(origin) ? origin : '*');
@@ -30,7 +28,10 @@ export default async function handler(req, res) {
 
   try {
     const resp = await fetch(urlLimpia, {
-      headers: { 'User-Agent': 'Afiliapp-Diagnostico-Ley21719/1.0' },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; AfiliappDiagnostico/1.0)',
+        'Accept': 'text/html'
+      },
       signal: AbortSignal.timeout(10000)
     });
     html = await resp.text();
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
     if (privLink) {
       try {
         const resp2 = await fetch(privLink, {
-          headers: { 'User-Agent': 'Afiliapp-Diagnostico-Ley21719/1.0' },
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AfiliappDiagnostico/1.0)' },
           signal: AbortSignal.timeout(8000)
         });
         htmlPrivacidad = await resp2.text();
@@ -53,14 +54,14 @@ export default async function handler(req, res) {
 
   // ── 2. ANÁLISIS ─────────────────────────────────────────────────────────────
   const checks = fetchError
-    ? generarChecksFallidos()
+    ? generarChecksPendientes()
     : analizarSitio(html, htmlPrivacidad, urlLimpia);
 
-  const puntaje = checks.filter(c => c.estado === 'ok').length;
+  const puntaje = fetchError ? null : checks.filter(c => c.estado === 'ok').length;
   const total   = checks.length;
-  const nivel   = puntaje >= 8 ? 'alto' : puntaje >= 5 ? 'medio' : 'bajo';
+  const nivel   = fetchError ? 'pendiente' : puntaje >= 8 ? 'alto' : puntaje >= 5 ? 'medio' : 'bajo';
 
-  // ── 3. EMAIL vía Gmail SMTP ──────────────────────────────────────────────────
+  // ── 3. EMAIL ─────────────────────────────────────────────────────────────────
   const htmlEmail = generarEmail({ nombre, organizacion, url: urlLimpia, checks, puntaje, total, nivel, fetchError });
 
   try {
@@ -76,7 +77,9 @@ export default async function handler(req, res) {
       from: `Afiliapp <${process.env.GMAIL_USER}>`,
       to: email,
       bcc: 'contacto@afiliapp.cl',
-      subject: `📋 Diagnóstico Ley 21.719 — ${organizacion}`,
+      subject: fetchError
+        ? `📋 Diagnóstico Ley 21.719 — ${organizacion} (revisión manual pendiente)`
+        : `📋 Diagnóstico Ley 21.719 — ${organizacion}`,
       html: htmlEmail
     });
 
@@ -91,8 +94,7 @@ export default async function handler(req, res) {
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 
 function normalizar(texto) {
-  return texto.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
 function contiene(texto, ...palabras) {
@@ -123,97 +125,57 @@ function formularioConTextoPrivacidad(html) {
   return forms.some(f => contiene(f, 'privacidad', 'privacy', 'datos personales', '21.719', '19.628'));
 }
 
+function generarChecksPendientes() {
+  return [
+    { id: 'politica_publicada',      titulo: 'Política de Privacidad publicada',           descripcion: 'El sitio debe tener una página de Política de Privacidad accesible.', recomendacion: 'Publicar una Política de Privacidad en una URL dedicada que cumpla el Art. 14 ter de la Ley 21.719.' },
+    { id: 'politica_en_menu',        titulo: 'Enlace a política en menú o footer',         descripcion: 'La política debe ser accesible desde cualquier página.', recomendacion: 'Agregar enlace a la Política de Privacidad en el footer y menú principal.' },
+    { id: 'responsable_identificado',titulo: 'Responsable identificado en la política',    descripcion: 'La política debe indicar quién es el responsable del tratamiento.', recomendacion: 'Identificar al responsable con nombre, RUT, domicilio y email (Art. 14 ter).' },
+    { id: 'derechos_titulares',      titulo: 'Derechos del titular descritos',             descripcion: 'La política debe informar sobre los derechos de acceso, rectificación, supresión, oposición y portabilidad.', recomendacion: 'Incluir sección de derechos del titular (Art. 4° al 9° Ley 21.719).' },
+    { id: 'canal_derechos',          titulo: 'Canal habilitado para ejercer derechos',     descripcion: 'Debe existir un email o formulario dedicado para ejercer derechos.', recomendacion: 'Publicar email dedicado para solicitudes de datos.' },
+    { id: 'formulario_aviso',        titulo: 'Aviso de privacidad en formularios',         descripcion: 'Cada formulario debe incluir un aviso sobre el tratamiento de datos.', recomendacion: 'Agregar aviso de privacidad junto a cada formulario.' },
+    { id: 'consentimiento_checkbox', titulo: 'Checkbox de consentimiento en formularios',  descripcion: 'Los formularios deben incluir un checkbox de consentimiento explícito.', recomendacion: 'Agregar checkbox obligatorio de consentimiento en formularios.' },
+    { id: 'datos_sensibles',         titulo: 'Mención de datos sensibles',                 descripcion: 'Si se tratan datos de afiliación sindical, debe mencionarse en la política.', recomendacion: 'Declarar la afiliación sindical como dato sensible (Art. 2° g) Ley 21.719).' },
+    { id: 'terceros_proveedores',    titulo: 'Terceros y proveedores declarados',          descripcion: 'La política debe informar qué terceros tratan datos por cuenta de la organización.', recomendacion: 'Listar proveedores tecnológicos y su ubicación geográfica.' },
+    { id: 'brecha_protocolo',        titulo: 'Protocolo de brechas de seguridad',          descripcion: 'Debe existir un protocolo interno para responder ante vulneraciones.', recomendacion: 'Implementar Protocolo de Brechas (Art. 14 sexies Ley 21.719).' },
+  ].map(c => ({ ...c, estado: 'pendiente' }));
+}
+
 function analizarSitio(html, htmlPriv, urlBase) {
   const textoCompleto = html + ' ' + htmlPriv;
   const hayFormulario = tieneFormulario(html);
 
   return [
-    {
-      id: 'politica_publicada',
-      titulo: 'Política de Privacidad publicada',
-      descripcion: 'El sitio debe tener una página de Política de Privacidad accesible.',
-      estado: contiene(html, 'privacidad', 'privacy policy', 'política de privacidad') ||
-              extraerEnlacePrivacidad(html, urlBase) ? 'ok' : 'mal',
-      recomendacion: 'Publicar una Política de Privacidad en una URL dedicada (ej: /privacidad.php) que cumpla los requisitos del Art. 14 ter de la Ley 21.719.'
-    },
-    {
-      id: 'politica_en_menu',
-      titulo: 'Enlace a política en menú o footer',
-      descripcion: 'La política debe ser accesible desde cualquier página, idealmente en el menú o footer.',
-      estado: (() => {
-        const footer = html.match(/<footer[\s\S]*?<\/footer>/i)?.[0] || '';
-        const nav    = html.match(/<nav[\s\S]*?<\/nav>/i)?.[0] || '';
-        return contiene(footer + nav, 'privacidad', 'privacy') ? 'ok' : 'mal';
-      })(),
-      recomendacion: 'Agregar el enlace "Política de Privacidad" en el footer y en el menú principal del sitio.'
-    },
-    {
-      id: 'responsable_identificado',
-      titulo: 'Responsable identificado en la política',
-      descripcion: 'La política debe indicar quién es el responsable del tratamiento.',
-      estado: htmlPriv && contiene(htmlPriv, 'rut', 'responsable', 'representante', 'domicilio') ? 'ok'
-              : htmlPriv ? 'parcial' : 'mal',
-      recomendacion: 'La Política de Privacidad debe identificar al responsable con nombre completo, RUT, domicilio y email de contacto (Art. 14 ter).'
-    },
-    {
-      id: 'derechos_titulares',
-      titulo: 'Derechos del titular descritos',
-      descripcion: 'La política debe informar sobre los derechos de acceso, rectificación, supresión, oposición y portabilidad.',
-      estado: contiene(textoCompleto, 'acceso', 'rectificacion', 'supresion', 'portabilidad') &&
-              contiene(textoCompleto, 'derecho') ? 'ok' : 'mal',
-      recomendacion: 'Incluir en la Política de Privacidad una sección que describa los derechos del titular (Art. 4° al 9° Ley 21.719).'
-    },
-    {
-      id: 'canal_derechos',
-      titulo: 'Canal habilitado para ejercer derechos',
-      descripcion: 'Debe existir un email o formulario dedicado para que los titulares ejerzan sus derechos.',
-      estado: (() => {
-        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-        const emails = textoCompleto.match(emailRegex) || [];
-        return emails.length > 0 ? 'ok' : 'mal';
-      })(),
-      recomendacion: 'Publicar un email de contacto dedicado para solicitudes de derechos de datos.'
-    },
-    {
-      id: 'formulario_aviso',
-      titulo: 'Aviso de privacidad en formularios',
-      descripcion: 'Cada formulario que recopila datos debe incluir un aviso informando el tratamiento.',
+    { id: 'politica_publicada', titulo: 'Política de Privacidad publicada', descripcion: 'El sitio debe tener una página de Política de Privacidad accesible.',
+      estado: contiene(html, 'privacidad', 'privacy policy', 'política de privacidad') || extraerEnlacePrivacidad(html, urlBase) ? 'ok' : 'mal',
+      recomendacion: 'Publicar una Política de Privacidad en una URL dedicada que cumpla el Art. 14 ter de la Ley 21.719.' },
+    { id: 'politica_en_menu', titulo: 'Enlace a política en menú o footer', descripcion: 'La política debe ser accesible desde cualquier página.',
+      estado: (() => { const footer = html.match(/<footer[\s\S]*?<\/footer>/i)?.[0] || ''; const nav = html.match(/<nav[\s\S]*?<\/nav>/i)?.[0] || ''; return contiene(footer + nav, 'privacidad', 'privacy') ? 'ok' : 'mal'; })(),
+      recomendacion: 'Agregar enlace a la Política de Privacidad en el footer y menú principal.' },
+    { id: 'responsable_identificado', titulo: 'Responsable identificado en la política', descripcion: 'La política debe indicar quién es el responsable del tratamiento.',
+      estado: htmlPriv && contiene(htmlPriv, 'rut', 'responsable', 'representante', 'domicilio') ? 'ok' : htmlPriv ? 'parcial' : 'mal',
+      recomendacion: 'Identificar al responsable con nombre, RUT, domicilio y email (Art. 14 ter).' },
+    { id: 'derechos_titulares', titulo: 'Derechos del titular descritos', descripcion: 'La política debe informar sobre los derechos de acceso, rectificación, supresión, oposición y portabilidad.',
+      estado: contiene(textoCompleto, 'acceso', 'rectificacion', 'supresion', 'portabilidad') && contiene(textoCompleto, 'derecho') ? 'ok' : 'mal',
+      recomendacion: 'Incluir sección de derechos del titular (Art. 4° al 9° Ley 21.719).' },
+    { id: 'canal_derechos', titulo: 'Canal habilitado para ejercer derechos', descripcion: 'Debe existir un email o formulario dedicado para ejercer derechos.',
+      estado: (() => { const emails = textoCompleto.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || []; return emails.length > 0 ? 'ok' : 'mal'; })(),
+      recomendacion: 'Publicar email dedicado para solicitudes de datos.' },
+    { id: 'formulario_aviso', titulo: 'Aviso de privacidad en formularios', descripcion: 'Cada formulario debe incluir un aviso sobre el tratamiento de datos.',
       estado: !hayFormulario ? 'ok' : formularioConTextoPrivacidad(html) ? 'ok' : 'mal',
-      recomendacion: 'Agregar un aviso de privacidad junto a cada formulario del sitio.'
-    },
-    {
-      id: 'consentimiento_checkbox',
-      titulo: 'Checkbox de consentimiento en formularios',
-      descripcion: 'Los formularios que recopilan datos deben incluir un checkbox de consentimiento explícito.',
+      recomendacion: 'Agregar aviso de privacidad junto a cada formulario.' },
+    { id: 'consentimiento_checkbox', titulo: 'Checkbox de consentimiento en formularios', descripcion: 'Los formularios deben incluir un checkbox de consentimiento explícito.',
       estado: !hayFormulario ? 'ok' : formularioConCheckbox(html) ? 'ok' : 'mal',
-      recomendacion: 'Agregar un checkbox obligatorio en cada formulario con texto de consentimiento.'
-    },
-    {
-      id: 'datos_sensibles',
-      titulo: 'Mención de datos sensibles (afiliación sindical)',
-      descripcion: 'Si la organización trata datos de afiliación sindical, debe mencionarlo en la política.',
+      recomendacion: 'Agregar checkbox obligatorio de consentimiento en formularios.' },
+    { id: 'datos_sensibles', titulo: 'Mención de datos sensibles (afiliación sindical)', descripcion: 'Si se tratan datos de afiliación sindical, debe mencionarse en la política.',
       estado: contiene(textoCompleto, 'afiliacion sindical', 'dato sensible', 'afiliación sindical') ? 'ok' : 'parcial',
-      recomendacion: 'Incluir en la Política de Privacidad que la afiliación sindical es un dato sensible según Art. 2° letra g) Ley 21.719.'
-    },
-    {
-      id: 'terceros_proveedores',
-      titulo: 'Terceros y proveedores tecnológicos declarados',
-      descripcion: 'La política debe informar qué terceros tratan datos por cuenta de la organización.',
+      recomendacion: 'Declarar la afiliación sindical como dato sensible (Art. 2° g) Ley 21.719).' },
+    { id: 'terceros_proveedores', titulo: 'Terceros y proveedores declarados', descripcion: 'La política debe informar qué terceros tratan datos por cuenta de la organización.',
       estado: contiene(textoCompleto, 'supabase', 'google', 'firebase', 'proveedor', 'tercero', 'encargado') ? 'ok' : 'mal',
-      recomendacion: 'Listar en la Política de Privacidad todos los proveedores tecnológicos que tratan datos.'
-    },
-    {
-      id: 'brecha_protocolo',
-      titulo: 'Protocolo de brechas de seguridad',
-      descripcion: 'La organización debe contar con un protocolo interno para responder ante vulneraciones.',
+      recomendacion: 'Listar proveedores tecnológicos y su ubicación geográfica.' },
+    { id: 'brecha_protocolo', titulo: 'Protocolo de brechas de seguridad', descripcion: 'Debe existir un protocolo interno para responder ante vulneraciones.',
       estado: contiene(textoCompleto, 'brecha', 'incidente', 'vulneracion', 'notificara') ? 'parcial' : 'mal',
-      recomendacion: 'Implementar un Protocolo Interno de Respuesta ante Brechas de Seguridad (Art. 14 sexies).'
-    }
+      recomendacion: 'Implementar Protocolo de Brechas (Art. 14 sexies Ley 21.719).' },
   ];
-}
-
-function generarChecksFallidos() {
-  return analizarSitio('', '', '').map(c => ({ ...c, estado: 'mal', _noAcceso: true }));
 }
 
 function generarEmail({ nombre, organizacion, url, checks, puntaje, total, nivel, fetchError }) {
@@ -221,40 +183,43 @@ function generarEmail({ nombre, organizacion, url, checks, puntaje, total, nivel
   const VERDE2   = '#2d7a4f';
   const ROJO     = '#c0392b';
   const AMARILLO = '#e67e22';
+  const GRIS     = '#888888';
 
-  const colorNivel = nivel === 'alto' ? '#27ae60' : nivel === 'medio' ? AMARILLO : ROJO;
-  const textoNivel = nivel === 'alto'
-    ? 'Cumplimiento mayoritario — ajustes menores'
-    : nivel === 'medio'
-    ? 'Cumplimiento parcial — brechas importantes'
+  const colorNivel = nivel === 'alto' ? '#27ae60' : nivel === 'medio' ? AMARILLO : nivel === 'pendiente' ? GRIS : ROJO;
+  const textoNivel = nivel === 'alto' ? 'Cumplimiento mayoritario — ajustes menores'
+    : nivel === 'medio' ? 'Cumplimiento parcial — brechas importantes'
+    : nivel === 'pendiente' ? 'Análisis manual pendiente — te contactaremos pronto'
     : 'Cumplimiento bajo — acción urgente requerida';
 
   function iconoEstado(estado) {
-    if (estado === 'ok')      return `<span style="color:#27ae60;font-size:18px;">✅</span>`;
-    if (estado === 'parcial') return `<span style="color:${AMARILLO};font-size:18px;">🟡</span>`;
-    return                           `<span style="color:${ROJO};font-size:18px;">🔴</span>`;
+    if (estado === 'ok')       return `<span style="color:#27ae60;font-size:18px;">✅</span>`;
+    if (estado === 'parcial')  return `<span style="color:${AMARILLO};font-size:18px;">🟡</span>`;
+    if (estado === 'pendiente')return `<span style="color:${GRIS};font-size:18px;">⏳</span>`;
+    return                            `<span style="color:${ROJO};font-size:18px;">🔴</span>`;
   }
 
   const filasChecks = checks.map(c => `
     <tr>
-      <td style="padding:10px 14px;border-bottom:1px solid #eee;width:32px;text-align:center;">
-        ${iconoEstado(c.estado)}
-      </td>
+      <td style="padding:10px 14px;border-bottom:1px solid #eee;width:32px;text-align:center;">${iconoEstado(c.estado)}</td>
       <td style="padding:10px 14px;border-bottom:1px solid #eee;">
         <strong style="color:${VERDE};font-size:14px;">${c.titulo}</strong><br>
         <span style="color:#555;font-size:12px;">${c.descripcion}</span>
-        ${c.estado !== 'ok' ? `<br><span style="color:#888;font-size:12px;margin-top:4px;display:block;">
-          💡 <em>${c.recomendacion}</em></span>` : ''}
+        ${c.estado !== 'ok' ? `<br><span style="color:#888;font-size:12px;margin-top:4px;display:block;">💡 <em>${c.recomendacion}</em></span>` : ''}
       </td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
 
   const alertaAcceso = fetchError ? `
-    <div style="background:#fff3cd;border-left:4px solid ${AMARILLO};padding:12px 16px;margin-bottom:20px;border-radius:4px;font-size:13px;color:#555;">
-      <strong>⚠️ No pudimos acceder al sitio web ingresado.</strong><br>
-      El análisis se realizó con información limitada.
-    </div>
-  ` : '';
+    <div style="background:#fff3cd;border-left:4px solid ${AMARILLO};padding:16px 20px;margin-bottom:20px;border-radius:4px;font-size:14px;color:#555;">
+      <strong>⚠️ No pudimos analizar tu sitio web automáticamente.</strong><br><br>
+      Esto puede ocurrir cuando el servidor restringe el acceso a herramientas automatizadas.<br><br>
+      <strong>Un especialista de Afiliapp revisará tu sitio manualmente y te contactará dentro de las próximas 24 horas</strong>
+      para entregarte el diagnóstico completo personalizado.
+    </div>` : '';
+
+  const puntajeDisplay = fetchError
+    ? `<div style="font-size:32px;font-weight:700;color:${GRIS};">Análisis<br>pendiente</div>`
+    : `<div style="font-size:42px;font-weight:700;color:${colorNivel};">${puntaje}/${total}</div>
+       <div style="color:#555;font-size:13px;margin-top:4px;">puntos de cumplimiento</div>`;
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -274,26 +239,27 @@ function generarEmail({ nombre, organizacion, url, checks, puntaje, total, nivel
           <td style="padding:24px 32px 0;">
             <p style="margin:0;color:#333;font-size:15px;">Hola <strong>${nombre}</strong>,</p>
             <p style="margin:10px 0 0;color:#555;font-size:14px;line-height:1.6;">
-              Analizamos el sitio web de <strong>${organizacion}</strong>
+              Recibimos tu solicitud de diagnóstico para <strong>${organizacion}</strong>
               (<a href="${url}" style="color:${VERDE2};">${url}</a>)
-              respecto de los requisitos de la <strong>Ley N° 21.719</strong>,
-              vigente desde el <strong>1 de diciembre de 2026</strong>.
+              respecto de la <strong>Ley N° 21.719</strong>, vigente desde el <strong>1 de diciembre de 2026</strong>.
             </p>
           </td>
         </tr>
         <tr>
           <td style="padding:20px 32px;">
             <div style="background:#f8f8f8;border-radius:8px;padding:20px 24px;text-align:center;border-left:5px solid ${colorNivel};">
-              <div style="font-size:42px;font-weight:700;color:${colorNivel};">${puntaje}/${total}</div>
-              <div style="color:#555;font-size:13px;margin-top:4px;">puntos de cumplimiento</div>
+              ${puntajeDisplay}
               <div style="color:${colorNivel};font-size:13px;font-weight:600;margin-top:8px;">${textoNivel}</div>
             </div>
           </td>
         </tr>
-        ${alertaAcceso ? `<tr><td style="padding:0 32px;">${alertaAcceso}</td></tr>` : ''}
+        ${fetchError ? `<tr><td style="padding:0 32px;">${alertaAcceso}</td></tr>` : ''}
         <tr>
           <td style="padding:0 32px 24px;">
-            <h2 style="font-size:15px;color:${VERDE};margin:0 0 12px;">Detalle del diagnóstico</h2>
+            <h2 style="font-size:15px;color:${VERDE};margin:0 0 12px;">
+              ${fetchError ? 'Checklist de verificación (revisión manual pendiente)' : 'Detalle del diagnóstico'}
+            </h2>
+            ${fetchError ? `<p style="font-size:13px;color:#888;margin:0 0 12px;">Los siguientes puntos serán verificados manualmente por nuestro equipo:</p>` : ''}
             <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:6px;">
               ${filasChecks}
             </table>
@@ -301,13 +267,12 @@ function generarEmail({ nombre, organizacion, url, checks, puntaje, total, nivel
         </tr>
         <tr>
           <td style="padding:0 32px 24px;">
-            <table cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="padding-right:16px;font-size:12px;color:#555;">✅ Cumple</td>
-                <td style="padding-right:16px;font-size:12px;color:#555;">🟡 Cumple parcialmente</td>
-                <td style="font-size:12px;color:#555;">🔴 No cumple</td>
-              </tr>
-            </table>
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td style="padding-right:16px;font-size:12px;color:#555;">✅ Cumple</td>
+              <td style="padding-right:16px;font-size:12px;color:#555;">🟡 Cumple parcialmente</td>
+              <td style="padding-right:16px;font-size:12px;color:#555;">🔴 No cumple</td>
+              ${fetchError ? `<td style="font-size:12px;color:#555;">⏳ Pendiente revisión</td>` : ''}
+            </tr></table>
           </td>
         </tr>
         <tr><td style="padding:0 32px;"><hr style="border:none;border-top:1px solid #eee;margin:0;"></td></tr>
@@ -316,19 +281,16 @@ function generarEmail({ nombre, organizacion, url, checks, puntaje, total, nivel
             <h2 style="font-size:15px;color:${VERDE};margin:0 0 10px;">¿Quieres regularizar tu organización?</h2>
             <p style="margin:0 0 16px;color:#555;font-size:13px;line-height:1.6;">
               En <strong>Afiliapp</strong> implementamos todos los ajustes necesarios para cumplir la Ley 21.719
-              antes del 1 de diciembre de 2026.
+              antes del 1 de diciembre de 2026: Política de Privacidad, avisos en formularios,
+              cláusula de incorporación, consentimiento digital y protocolo de brechas.
             </p>
-            <table cellpadding="0" cellspacing="0">
-              <tr>
-                <td>
-                  <a href="https://www.afiliapp.cl/#contacto"
-                     style="display:inline-block;background:${VERDE2};color:#fff;text-decoration:none;
-                            padding:12px 28px;border-radius:6px;font-size:14px;font-weight:700;">
-                    Solicitar implementación →
-                  </a>
-                </td>
-              </tr>
-            </table>
+            <table cellpadding="0" cellspacing="0"><tr><td>
+              <a href="https://www.afiliapp.cl/#contacto"
+                 style="display:inline-block;background:${VERDE2};color:#fff;text-decoration:none;
+                        padding:12px 28px;border-radius:6px;font-size:14px;font-weight:700;">
+                Solicitar implementación →
+              </a>
+            </td></tr></table>
             <p style="margin:12px 0 0;color:#888;font-size:12px;">
               contacto@afiliapp.cl &nbsp;|&nbsp; +56 9 3207 6628
             </p>
