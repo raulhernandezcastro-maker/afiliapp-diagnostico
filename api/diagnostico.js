@@ -303,7 +303,6 @@ function generarEmail({ nombre, organizacion, url, checks, puntaje, total, nivel
               <table width="100%" cellpadding="0" cellspacing="0" style="font-size:12px;color:#555;">
                 <tr><td style="padding:4px 0;">📄 Solo sitio web</td><td style="text-align:right;font-weight:600;color:${VERDE};">desde $90.000</td></tr>
                 <tr><td style="padding:4px 0;">📱 Sitio web + app</td><td style="text-align:right;font-weight:600;color:${VERDE};">desde $150.000</td></tr>
-            //  <tr><td style="padding:4px 0;">🔄 Mantención anual</td><td style="text-align:right;font-weight:600;color:${VERDE};">desde $80.000/año</td></tr>
               </table>
             </div>
           </td>
