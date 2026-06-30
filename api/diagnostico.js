@@ -66,15 +66,17 @@ export default async function handler(req, res) {
 
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.zoho.com',
+      port: 465,
+      secure: true,
       auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASS
+        user: process.env.ZOHO_USER,
+        pass: process.env.ZOHO_PASS
       }
     });
 
     await transporter.sendMail({
-      from: `Afiliapp <${process.env.GMAIL_USER}>`,
+      from: `Afiliapp <${process.env.ZOHO_USER}>`,
       to: email,
       bcc: 'contacto@afiliapp.cl',
       subject: fetchError
