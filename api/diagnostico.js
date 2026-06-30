@@ -78,7 +78,7 @@ export default async function handler(req, res) {
     await transporter.sendMail({
       from: `Afiliapp <${process.env.ZOHO_USER}>`,
       to: email,
-      bcc: 'contacto@afiliapp.cl',
+      bcc: ['contacto@afiliapp.cl', 'raul.hernandez.castro@gmail.com'],
       subject: fetchError
         ? `📋 Diagnóstico Ley 21.719 — ${organizacion} (revisión manual pendiente)`
         : `📋 Diagnóstico Ley 21.719 — ${organizacion}`,
