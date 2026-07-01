@@ -13,9 +13,9 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
 
-  const { nombre, organizacion, email, url } = req.body;
+  const { nombre, organizacion, tipo, email, url } = req.body;
 
-  if (!nombre || !organizacion || !email || !url) {
+  if (!nombre || !organizacion || !tipo || !email || !url) {
     return res.status(400).json({ error: 'Todos los campos son requeridos' });
   }
 
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
   const nivel   = fetchError ? 'pendiente' : puntaje >= 8 ? 'alto' : puntaje >= 5 ? 'medio' : 'bajo';
 
   // ── 3. EMAIL ─────────────────────────────────────────────────────────────────
-  const htmlEmail = generarEmail({ nombre, organizacion, url: urlLimpia, checks, puntaje, total, nivel, fetchError });
+  const htmlEmail = generarEmail({ nombre, organizacion, tipo, url: urlLimpia, checks, puntaje, total, nivel, fetchError });
 
   try {
     const transporter = nodemailer.createTransport({
@@ -180,7 +180,7 @@ function analizarSitio(html, htmlPriv, urlBase) {
   ];
 }
 
-function generarEmail({ nombre, organizacion, url, checks, puntaje, total, nivel, fetchError }) {
+function generarEmail({ nombre, organizacion, tipo, url, checks, puntaje, total, nivel, fetchError }) {
   const VERDE    = '#1e3a2f';
   const VERDE2   = '#2d7a4f';
   const ROJO     = '#c0392b';
@@ -301,11 +301,23 @@ function generarEmail({ nombre, organizacion, url, checks, puntaje, total, nivel
         <tr>
           <td style="padding:0 32px 24px;">
             <div style="background:#f0f8f4;border-radius:6px;padding:16px 20px;">
-              <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:${VERDE};">Tarifas para organizaciones sin fines de lucro</p>
+              ${tipo === 'sindical_ong' ? `
+              <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:${VERDE};">Tarifas para sindicatos y organizaciones sin fines de lucro</p>
               <table width="100%" cellpadding="0" cellspacing="0" style="font-size:12px;color:#555;">
                 <tr><td style="padding:4px 0;">📄 Solo sitio web</td><td style="text-align:right;font-weight:600;color:${VERDE};">desde $90.000</td></tr>
                 <tr><td style="padding:4px 0;">📱 Sitio web + app</td><td style="text-align:right;font-weight:600;color:${VERDE};">desde $150.000</td></tr>
               </table>
+              ` : `
+              <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:${VERDE};">Cotización personalizada</p>
+              <p style="margin:0 0 12px;font-size:12px;color:#555;line-height:1.6;">
+                Para empresas y asociaciones gremiales preparamos una cotización según la complejidad de tu sitio y los sistemas que utilizas.
+              </p>
+              <a href="mailto:contacto@afiliapp.cl?subject=Solicitud%20de%20cotización%20Ley%2021.719"
+                 style="display:inline-block;background:${VERDE2};color:#fff;text-decoration:none;
+                        padding:10px 22px;border-radius:6px;font-size:13px;font-weight:700;">
+                Solicitar cotización →
+              </a>
+              `}
             </div>
           </td>
         </tr>
