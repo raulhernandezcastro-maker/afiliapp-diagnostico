@@ -286,13 +286,23 @@ function generarEmail({ nombre, organizacion, tipo, url, checks, puntaje, total,
               antes del 1 de diciembre de 2026: Política de Privacidad, avisos en formularios,
               cláusula de incorporación, consentimiento digital y protocolo de brechas.
             </p>
-            <table cellpadding="0" cellspacing="0"><tr><td>
-              <a href="https://www.afiliapp.cl/?tipo=implementacion#contacto"
-                 style="display:inline-block;background:${VERDE2};color:#fff;text-decoration:none;
-                        padding:12px 28px;border-radius:6px;font-size:14px;font-weight:700;">
-                Solicitar implementación →
-              </a>
-            </td></tr></table>
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td style="padding-right:12px;">
+                <a href="https://wa.me/56932076628?text=Hola%2C%20quiero%20implementar%20la%20Ley%2021.719%20en%20mi%20organizaci%C3%B3n%20(${encodeURIComponent(organizacion)})"
+                   style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;
+                          padding:12px 22px;border-radius:6px;font-size:14px;font-weight:700;">
+                  &#128172; Escribir por WhatsApp
+                </a>
+              </td>
+              <td>
+                <a href="mailto:contacto@afiliapp.cl?subject=Implementaci%C3%B3n%20Ley%2021.719%20%E2%80%94%20${encodeURIComponent(organizacion)}"
+                   style="display:inline-block;background:#fff;color:${VERDE2};text-decoration:none;
+                          padding:12px 22px;border-radius:6px;font-size:14px;font-weight:700;
+                          border:2px solid ${VERDE2};">
+                  &#9993;&#65039; Enviar email
+                </a>
+              </td>
+            </tr></table>
             <p style="margin:12px 0 0;color:#888;font-size:12px;">
               contacto@afiliapp.cl &nbsp;|&nbsp; +56 9 3207 6628
             </p>
