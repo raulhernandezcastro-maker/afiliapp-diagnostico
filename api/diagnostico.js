@@ -288,7 +288,7 @@ function generarEmail({ nombre, organizacion, tipo, url, checks, puntaje, total,
             </p>
             <table cellpadding="0" cellspacing="0"><tr>
               <td style="padding-right:12px;">
-                <a href="https://wa.me/56932076628?text=Hola%2C%20quiero%20implementar%20la%20Ley%2021.719%20en%20mi%20organizaci%C3%B3n%20(${encodeURIComponent(organizacion)})"
+                <a href="https://wa.me/56935094465?text=Hola%2C%20quiero%20implementar%20la%20Ley%2021.719%20en%20mi%20organizaci%C3%B3n%20(${encodeURIComponent(organizacion)})"
                    style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;
                           padding:12px 22px;border-radius:6px;font-size:14px;font-weight:700;">
                   &#128172; Escribir por WhatsApp
@@ -304,7 +304,7 @@ function generarEmail({ nombre, organizacion, tipo, url, checks, puntaje, total,
               </td>
             </tr></table>
             <p style="margin:12px 0 0;color:#888;font-size:12px;">
-              contacto@afiliapp.cl &nbsp;|&nbsp; +56 9 3207 6628
+              contacto@afiliapp.cl &nbsp;|&nbsp; +56 9 3509 4465
             </p>
           </td>
         </tr>
@@ -335,7 +335,7 @@ function generarEmail({ nombre, organizacion, tipo, url, checks, puntaje, total,
           <td style="background:#f8f8f8;padding:16px 32px;border-top:1px solid #eee;">
             <p style="margin:0;font-size:11px;color:#aaa;text-align:center;">
               Este diagnóstico es orientativo y no constituye asesoría legal.<br><br>
-              <a href="https://www.afiliapp.cl" style="color:#aaa;">afiliapp.cl</a> | contacto@afiliapp.cl | +56 9 3207 6628
+              <a href="https://www.afiliapp.cl" style="color:#aaa;">afiliapp.cl</a> | contacto@afiliapp.cl | +56 9 3509 4465
             </p>
           </td>
         </tr>
