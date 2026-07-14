@@ -256,27 +256,6 @@ function generarEmail({ nombre, organizacion, tipo, url, checks, puntaje, total,
           </td>
         </tr>
         ${fetchError ? `<tr><td style="padding:0 32px;">${alertaAcceso}</td></tr>` : ''}
-        <tr>
-          <td style="padding:0 32px 24px;">
-            <h2 style="font-size:15px;color:${VERDE};margin:0 0 12px;">
-              ${fetchError ? 'Checklist de verificación (revisión manual pendiente)' : 'Detalle del diagnóstico'}
-            </h2>
-            ${fetchError ? `<p style="font-size:13px;color:#888;margin:0 0 12px;">Los siguientes puntos serán verificados manualmente por nuestro equipo:</p>` : ''}
-            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:6px;">
-              ${filasChecks}
-            </table>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:0 32px 24px;">
-            <table cellpadding="0" cellspacing="0"><tr>
-              <td style="padding-right:16px;font-size:12px;color:#555;">✅ Cumple</td>
-              <td style="padding-right:16px;font-size:12px;color:#555;">🟡 Cumple parcialmente</td>
-              <td style="padding-right:16px;font-size:12px;color:#555;">🔴 No cumple</td>
-              ${fetchError ? `<td style="font-size:12px;color:#555;">⏳ Pendiente revisión</td>` : ''}
-            </tr></table>
-          </td>
-        </tr>
         <tr><td style="padding:0 32px;"><hr style="border:none;border-top:1px solid #eee;margin:0;"></td></tr>
         <tr>
           <td style="padding:24px 32px;">
@@ -331,6 +310,29 @@ function generarEmail({ nombre, organizacion, tipo, url, checks, puntaje, total,
             </div>
           </td>
         </tr>
+        <tr><td style="padding:0 32px;"><hr style="border:none;border-top:1px solid #eee;margin:0;"></td></tr>
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <h2 style="font-size:15px;color:${VERDE};margin:0 0 12px;">
+              ${fetchError ? 'Checklist de verificación (revisión manual pendiente)' : 'Detalle del diagnóstico'}
+            </h2>
+            ${fetchError ? `<p style="font-size:13px;color:#888;margin:0 0 12px;">Los siguientes puntos serán verificados manualmente por nuestro equipo:</p>` : ''}
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee;border-radius:6px;">
+              ${filasChecks}
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td style="padding-right:16px;font-size:12px;color:#555;">✅ Cumple</td>
+              <td style="padding-right:16px;font-size:12px;color:#555;">🟡 Cumple parcialmente</td>
+              <td style="padding-right:16px;font-size:12px;color:#555;">🔴 No cumple</td>
+              ${fetchError ? `<td style="font-size:12px;color:#555;">⏳ Pendiente revisión</td>` : ''}
+            </tr></table>
+          </td>
+        </tr>
+
         <tr>
           <td style="background:#f8f8f8;padding:16px 32px;border-top:1px solid #eee;">
             <p style="margin:0;font-size:11px;color:#aaa;text-align:center;">
